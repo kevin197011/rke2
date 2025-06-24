@@ -1,0 +1,19 @@
+---
+token: rke2Secret123456
+loadbalancer_ip: lb-01-ip
+
+nodes:
+  - name: master-01
+    ip: master-01-ip
+    role: server
+    ssh_user: devops
+
+  - name: worker-01
+    ip: worker-01-ip
+    role: agent
+    ssh_user: devops
+
+  - name: lb-01
+    ip: lb-01-ip
+    role: lb
+    ssh_user: devops
