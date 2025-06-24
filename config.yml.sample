@@ -1,19 +1,30 @@
 ---
 token: rke2Secret123456
-loadbalancer_ip: lb-01-ip
+loadbalancer_ip: 1.1.1.31
+username: devops
+ssh_key: ~/.ssh/id_rsa
 
 nodes:
   - name: master-01
-    ip: master-01-ip
+    ip: 1.1.1.11
     role: server
-    ssh_user: devops
+  - name: master-02
+    ip: 1.1.1.12
+    role: server
+  - name: master-03
+    ip: 1.1.1.13
+    role: server
 
   - name: worker-01
-    ip: worker-01-ip
+    ip: 1.1.1.21
     role: agent
-    ssh_user: devops
+  - name: worker-02
+    ip: 1.1.1.22
+    role: agent
+  - name: worker-03
+    ip: 1.1.1.23
+    role: agent
 
   - name: lb-01
-    ip: lb-01-ip
+    ip: 1.1.1.31
     role: lb
-    ssh_user: devops

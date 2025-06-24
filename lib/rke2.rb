@@ -1,6 +1,11 @@
+# Copyright (c) 2025 Kk
+#
+# This software is released under the MIT License.
+# https://opensource.org/licenses/MIT
+
 # frozen_string_literal: true
 
-module Rke2
+module RKE2
   class Error < StandardError; end
   # Your code goes here...
 end
