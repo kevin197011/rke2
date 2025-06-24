@@ -57,7 +57,7 @@ rke2/
 ### 1. 安装
 
 ```bash
-git clone https://github.com/your-username/rke2.git
+git clone https://github.com/kevin197011/rke2.git
 cd rke2
 bundle install
 ```
@@ -532,7 +532,7 @@ bundle install
 ### 开发环境设置
 ```bash
 # Fork 并克隆项目
-git clone https://github.com/your-username/rke2.git
+git clone https://github.com/kevin197011/rke2.git
 cd rke2
 
 # 安装开发依赖

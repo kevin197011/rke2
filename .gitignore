@@ -1,13 +1,65 @@
+# Bundler
 /.bundle/
+/vendor/
+
+# Documentation
 /.yardoc
 /_yardoc/
-/coverage/
 /doc/
-/pkg/
+
+# Testing
+/coverage/
 /spec/reports/
+.rspec_status
+
+# Build artifacts
+/pkg/
 /tmp/
 
-# rspec failure tracking
-.rspec_status
+# Runtime files
+*.gem
+*.log
+.DS_Store
+Thumbs.db
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Ruby version managers
+.rvmrc
+.ruby-version
+.ruby-gemset
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Configuration files (contain sensitive data)
 config.yml
+
+# Temporary test files
 t.rb
+test_*.rb
+debug_*.rb
+
+# Logs
+*.log
+logs/
+
+# Ruby profiling and debugging
+profile.html
+stackprof-*
+tmp/

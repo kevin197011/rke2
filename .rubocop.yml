@@ -1,0 +1,135 @@
+# RuboCop configuration for RKE2 project
+# https://docs.rubocop.org/rubocop/configuration.html
+
+require:
+  - rubocop-rspec
+
+AllCops:
+  TargetRubyVersion: 2.7
+  NewCops: enable
+  Exclude:
+    - 'vendor/**/*'
+    - 'tmp/**/*'
+    - 'bin/*'
+    - 'node_modules/**/*'
+
+# Layout
+Layout/LineLength:
+  Max: 120
+  Exclude:
+    - 'spec/**/*'
+
+Layout/MultilineMethodCallIndentation:
+  EnforcedStyle: aligned
+
+# Metrics
+Metrics/AbcSize:
+  Max: 20
+  Exclude:
+    - 'spec/**/*'
+
+Metrics/BlockLength:
+  Max: 30
+  Exclude:
+    - 'spec/**/*'
+    - 'lib/rke2/deploy.rb'
+    - 'lib/rke2/server.rb'
+    - 'lib/rke2/bootstrap.rb'
+    - 'lib/rke2/finalizer.rb'
+    - 'lib/rke2/helper.rb'
+    - 'lib/rke2/proxy.rb'
+    - 'lib/rke2/agent.rb'
+
+Metrics/ClassLength:
+  Max: 200
+  Exclude:
+    - 'spec/**/*'
+
+Metrics/CyclomaticComplexity:
+  Max: 10
+
+Metrics/MethodLength:
+  Max: 30
+  Exclude:
+    - 'spec/**/*'
+
+Metrics/ModuleLength:
+  Max: 150
+
+Metrics/ParameterLists:
+  Max: 6
+
+Metrics/PerceivedComplexity:
+  Max: 10
+
+# Style
+Style/Documentation:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  EnforcedStyle: always
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+  ConsistentQuotesInMultiline: true
+
+Style/HashSyntax:
+  EnforcedStyle: ruby19
+
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+Style/GuardClause:
+  MinBodyLength: 3
+
+Style/IfUnlessModifier:
+  Enabled: false
+
+Style/NumericLiterals:
+  MinDigits: 6
+
+Style/PercentLiteralDelimiters:
+  PreferredDelimiters:
+    default: '()'
+    '%i': '[]'
+    '%I': '[]'
+    '%r': '{}'
+    '%w': '[]'
+    '%W': '[]'
+
+Style/TrailingCommaInArguments:
+  EnforcedStyleForMultiline: comma
+
+Style/TrailingCommaInArrayLiteral:
+  EnforcedStyleForMultiline: comma
+
+Style/TrailingCommaInHashLiteral:
+  EnforcedStyleForMultiline: comma
+
+# Naming
+Naming/FileName:
+  Exclude:
+    - 'Gemfile'
+    - 'Rakefile'
+
+Naming/VariableNumber:
+  EnforcedStyle: snake_case
+
+# Security
+Security/YAMLLoad:
+  Enabled: false  # We use YAML.load_file for configuration
+
+# RSpec specific rules
+RSpec/ExampleLength:
+  Max: 20
+
+RSpec/MultipleExpectations:
+  Max: 5
+
+RSpec/NestedGroups:
+  Max: 4
+
+RSpec/DescribeClass:
+  Exclude:
+    - 'spec/integration/**/*'

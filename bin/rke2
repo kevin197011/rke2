@@ -1,0 +1,459 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Copyright (c) 2025 Kk
+#
+# This software is released under the MIT License.
+# https://opensource.org/licenses/MIT
+
+require_relative '../lib/rke2'
+
+# RKE2 Deployment CLI Tool
+class RKE2CLI
+  def initialize
+    # Check for debug flags
+    @debug_mode = ENV['DEBUG'] == '1' || ARGV.include?('--debug') || ARGV.include?('-d')
+
+    # Initialize logger with appropriate level
+    log_level = @debug_mode ? :debug : :info
+    @logger = RKE2::Logger.new(level: log_level)
+    @config_file = 'config.yml'
+
+    return unless @debug_mode
+
+    @logger.debug('Debug mode enabled')
+    @logger.debug("Command line arguments: #{ARGV.inspect}")
+  end
+
+  # Main entry point
+  def run
+    show_banner
+
+    if ARGV.length > 0
+      handle_command_line_args
+    else
+      show_interactive_menu
+    end
+  end
+
+  private
+
+  # Show application banner
+  def show_banner
+    puts "\n" + '=' * 80
+    puts "🚀 RKE2 集群部署工具 v#{RKE2::VERSION}"
+    puts '=' * 80
+    puts '📋 高可用 Kubernetes 集群自动化部署'
+    puts '🔧 支持 HAProxy 负载均衡、Server/Agent 节点部署'
+    puts '⚡ 自动配置 kubectl、Helm、K9s 工具'
+    puts "🐛 调试模式: #{@debug_mode ? '开启' : '关闭'}"
+    puts '=' * 80
+  end
+
+  # Handle command line arguments
+  def handle_command_line_args
+    # Filter out debug flags
+    commands = ARGV.reject { |arg| %w[--debug -d].include?(arg) }
+    command = commands[0].to_s.downcase
+
+    case command
+    when 'deploy', 'run'
+      run_full_deployment
+    when 'quick'
+      run_quick_deployment
+    when 'ha'
+      run_full_deployment # Same as full deployment
+    when 'servers'
+      run_servers_only
+    when 'bootstrap', 'init'
+      run_bootstrap_only_cli
+    when 'help', '--help', '-h'
+      show_help
+    when 'version', '--version', '-v'
+      puts "RKE2 部署工具 v#{RKE2::VERSION}"
+      puts "Debug mode: #{@debug_mode ? 'enabled' : 'disabled'}" if @debug_mode
+    else
+      puts "❌ 未知命令: #{command}"
+      puts "💡 使用 'rke2 help' 查看帮助信息"
+      exit 1
+    end
+  end
+
+  # Show interactive menu
+  def show_interactive_menu
+    loop do
+      puts "\n📋 请选择部署模式:"
+      puts '  1. 🏢 完整部署 (系统初始化 + HAProxy + Server + Agent + 配置工具)'
+      puts '  2. ⚡ 快速部署 (仅 Server 节点 + 配置工具)'
+      puts '  3. 🎛️  服务器部署 (系统初始化 + HAProxy + Server + 配置工具)'
+      puts '  4. 🔧 自定义部署 (选择性跳过组件)'
+      puts '  5. 🚀 系统初始化 (仅执行性能优化)'
+      puts '  6. ℹ️  配置信息预览'
+      puts '  7. ❓ 帮助信息'
+      puts '  0. 🚪 退出'
+
+      print "\n请输入选项 (0-7): "
+      choice = STDIN.gets&.chomp || '0'
+
+      case choice
+      when '1'
+        run_full_deployment
+        break
+      when '2'
+        run_quick_deployment
+        break
+      when '3'
+        run_servers_only
+        break
+      when '4'
+        run_custom_deployment
+        break
+      when '5'
+        run_bootstrap_only
+        break
+      when '6'
+        show_config_preview
+      when '7'
+        show_help
+      when '0'
+        puts '👋 感谢使用 RKE2 部署工具！'
+        exit 0
+      else
+        puts '❌ 无效选项，请输入 0-7 之间的数字'
+      end
+    end
+  end
+
+  # Run full deployment
+  def run_full_deployment
+    puts "\n🏢 开始完整部署..."
+    confirm_deployment('完整部署 (包含系统初始化、HAProxy、Server、Agent 节点及工具配置)')
+
+    success = RKE2::Deploy.run_full_with_bootstrap(@config_file, logger: @logger)
+
+    if success
+      puts "\n🎉 完整部署成功完成！"
+      show_next_steps
+    else
+      puts "\n❌ 部署失败，请检查日志信息"
+      exit 1
+    end
+  end
+
+  # Run quick deployment
+  def run_quick_deployment
+    puts "\n⚡ 开始快速部署..."
+    confirm_deployment('快速部署 (仅 Server 节点，不含系统初始化、HAProxy 和 Agent)')
+
+    success = RKE2::Deploy.run_quick(@config_file, logger: @logger)
+
+    if success
+      puts "\n🎉 快速部署成功完成！"
+      show_next_steps
+    else
+      puts "\n❌ 部署失败，请检查日志信息"
+      exit 1
+    end
+  end
+
+  # Run servers only deployment
+  def run_servers_only
+    puts "\n🎛️  开始服务器部署..."
+    confirm_deployment('服务器部署 (包含系统初始化、HAProxy 和 Server 节点，不含 Agent)')
+
+    success = RKE2::Deploy.run_servers_only(@config_file, logger: @logger)
+
+    if success
+      puts "\n🎉 服务器部署成功完成！"
+      show_next_steps
+    else
+      puts "\n❌ 部署失败，请检查日志信息"
+      exit 1
+    end
+  end
+
+  # Run custom deployment
+  def run_custom_deployment
+    puts "\n🔧 自定义部署选项:"
+
+    print '跳过系统初始化? (y/N): '
+    skip_bootstrap = (STDIN.gets&.chomp&.downcase || 'n') == 'y'
+
+    print '跳过 HAProxy 配置? (y/N): '
+    skip_haproxy = (STDIN.gets&.chomp&.downcase || 'n') == 'y'
+
+    print '跳过 Agent 节点部署? (y/N): '
+    skip_agents = (STDIN.gets&.chomp&.downcase || 'n') == 'y'
+
+    print '跳过最终工具配置? (y/N): '
+    skip_finalization = (STDIN.gets&.chomp&.downcase || 'n') == 'y'
+
+    auto_reboot = true
+    unless skip_bootstrap
+      print '系统初始化后自动重启? (Y/n): '
+      auto_reboot = (STDIN.gets&.chomp&.downcase || 'y') != 'n'
+    end
+
+    # Display custom configuration
+    puts "\n📋 自定义配置摘要:"
+    puts "  系统初始化: #{skip_bootstrap ? '跳过' : "执行#{auto_reboot ? ' (自动重启)' : ' (手动重启)'}"}"
+    puts "  HAProxy 负载均衡: #{skip_haproxy ? '跳过' : '部署'}"
+    puts '  RKE2 Server: 部署'
+    puts "  RKE2 Agent: #{skip_agents ? '跳过' : '部署'}"
+    puts "  工具配置 (kubectl/Helm/K9s): #{skip_finalization ? '跳过' : '配置'}"
+
+    confirm_deployment('自定义部署')
+
+    success = RKE2::Deploy.run(
+      @config_file,
+      logger: @logger,
+      skip_bootstrap: skip_bootstrap,
+      skip_haproxy: skip_haproxy,
+      skip_agents: skip_agents,
+      skip_finalization: skip_finalization,
+      auto_reboot: auto_reboot
+    )
+
+    if success
+      puts "\n🎉 自定义部署成功完成！"
+      show_next_steps
+    else
+      puts "\n❌ 部署失败，请检查日志信息"
+      exit 1
+    end
+  end
+
+  # Run bootstrap only
+  def run_bootstrap_only
+    puts "\n🚀 开始系统初始化..."
+
+    print '初始化后自动重启? (Y/n): '
+    auto_reboot = (STDIN.gets&.chomp&.downcase || 'y') != 'n'
+
+    confirm_deployment("系统初始化和性能优化#{auto_reboot ? ' (自动重启)' : ' (手动重启)'}")
+
+    success = RKE2::Deploy.run_bootstrap_only(@config_file, auto_reboot: auto_reboot, logger: @logger)
+
+    if success
+      puts "\n🎉 系统初始化成功完成！"
+      unless auto_reboot
+        puts "\n💡 后续操作建议:"
+        puts '  1. 手动重启所有节点: sudo reboot'
+        puts '  2. 重启完成后继续 RKE2 部署'
+      end
+    else
+      puts "\n❌ 系统初始化失败，请检查日志信息"
+      exit 1
+    end
+  end
+
+  # Run bootstrap only from command line
+  def run_bootstrap_only_cli
+    puts "\n🚀 开始系统初始化..."
+
+    # Check for --no-reboot flag
+    auto_reboot = !ARGV.include?('--no-reboot')
+
+    confirm_deployment("系统初始化和性能优化#{auto_reboot ? ' (自动重启)' : ' (手动重启)'}")
+
+    success = RKE2::Deploy.run_bootstrap_only(@config_file, auto_reboot: auto_reboot, logger: @logger)
+
+    if success
+      puts "\n🎉 系统初始化成功完成！"
+      unless auto_reboot
+        puts "\n💡 后续操作建议:"
+        puts '  1. 手动重启所有节点: sudo reboot'
+        puts '  2. 重启完成后继续 RKE2 部署'
+      end
+    else
+      puts "\n❌ 系统初始化失败，请检查日志信息"
+      exit 1
+    end
+  end
+
+  # Show configuration preview
+  def show_config_preview
+    puts "\n📋 配置信息预览:"
+
+    unless File.exist?(@config_file)
+      puts "❌ 配置文件 #{@config_file} 不存在"
+      puts '💡 请先创建配置文件，参考 config.yml.sample'
+      return
+    end
+
+    begin
+      config = RKE2::Config.load_config(@config_file)
+
+      puts "\n🔧 基本配置:"
+      puts "  Token: #{config['token'] || '未设置'}"
+      puts "  负载均衡器 IP: #{config['loadbalancer_ip'] || '未设置'}"
+      puts "  SSH 用户名: #{config['username'] || 'root'}"
+      puts "  SSH 密钥: #{config['ssh_key'] || '~/.ssh/id_rsa'}"
+
+      # Node information
+      server_nodes = config['nodes'].select { |node| node['role'] == 'server' }
+      agent_nodes = config['nodes'].select { |node| node['role'] == 'agent' }
+      lb_nodes = config['nodes'].select { |node| node['role'] == 'lb' }
+
+      puts "\n🖥️  节点配置:"
+      puts "  Server 节点: #{server_nodes.length} 个"
+      server_nodes.each do |node|
+        puts "    - #{node['name']} (#{node['ip']})"
+      end
+
+      if agent_nodes.any?
+        puts "  Agent 节点: #{agent_nodes.length} 个"
+        agent_nodes.each do |node|
+          puts "    - #{node['name']} (#{node['ip']})"
+        end
+      end
+
+      if lb_nodes.any?
+        puts "  负载均衡器: #{lb_nodes.length} 个"
+        lb_nodes.each do |node|
+          puts "    - #{node['name']} (#{node['ip']})"
+        end
+      end
+
+      puts "\n📊 部署统计:"
+      puts "  总节点数: #{config['nodes'].length}"
+      puts "  预估部署时间: #{estimate_deployment_time(config['nodes'].length)}"
+    rescue StandardError => e
+      puts "❌ 配置文件读取失败: #{e.message}"
+    end
+  end
+
+  # Show help information
+  def show_help
+    puts "\n📖 RKE2 部署工具使用帮助:"
+    puts "\n🚀 命令行使用方式:"
+    puts '  rke2                     # 交互式菜单'
+    puts '  rke2 deploy              # 完整部署 (包含系统初始化)'
+    puts '  rke2 quick               # 快速部署 (仅 Server)'
+    puts '  rke2 ha                  # 高可用部署 (与 deploy 相同)'
+    puts '  rke2 servers             # 服务器部署 (Server + HAProxy + 初始化)'
+    puts '  rke2 bootstrap           # 仅系统初始化'
+    puts '  rke2 bootstrap --no-reboot  # 系统初始化 (不自动重启)'
+    puts '  rke2 help                # 显示帮助信息'
+    puts '  rke2 version             # 显示版本信息'
+    puts ''
+    puts '🐛 调试选项:'
+    puts '  --debug, -d              # 启用详细调试输出'
+    puts '  DEBUG=1 rke2 deploy      # 通过环境变量启用调试'
+
+    puts "\n📋 部署模式说明:"
+    puts '  🏢 完整部署: 系统初始化 + HAProxy + Server + Agent + 工具配置'
+    puts '  ⚡ 快速部署: 仅 Server 节点 + 工具配置'
+    puts '  🎛️  服务器部署: 系统初始化 + HAProxy + Server + 工具配置'
+    puts '  🚀 系统初始化: 性能优化、内核参数调整、防火墙配置等'
+    puts '  🔧 自定义部署: 可选择性跳过组件'
+
+    puts "\n📝 配置文件 (config.yml) 示例:"
+    puts '  token: rke2Secret123456'
+    puts '  loadbalancer_ip: 192.168.1.100'
+    puts '  username: devops'
+    puts '  ssh_key: ~/.ssh/id_rsa'
+    puts '  nodes:'
+    puts '    - name: master-01'
+    puts '      ip: 192.168.1.10'
+    puts '      role: server'
+    puts '    - name: worker-01'
+    puts '      ip: 192.168.1.20'
+    puts '      role: agent'
+    puts '    - name: lb-01'
+    puts '      ip: 192.168.1.100'
+    puts '      role: lb'
+
+    puts "\n💡 部署流程:"
+    puts '  1. 🔍 验证配置和节点连接'
+    puts '  2. 🚀 系统初始化和性能优化 (如果启用)'
+    puts '  3. 🔧 配置 HAProxy 负载均衡器 (如果启用)'
+    puts '  4. 🎛️  部署 RKE2 Server 节点'
+    puts '  5. 👥 部署 RKE2 Agent 节点 (如果启用)'
+    puts '  6. ⚙️  配置 kubectl、Helm、K9s (如果启用)'
+    puts '  7. ✅ 验证集群状态'
+
+    puts "\n🚀 系统初始化包含:"
+    puts '  - 时间同步配置 (香港时区)'
+    puts '  - Swap 禁用'
+    puts '  - 内核模块加载 (overlay, br_netfilter 等)'
+    puts '  - 系统参数优化 (网络、文件系统、虚拟内存)'
+    puts '  - 系统限制调整 (文件句柄、进程数等)'
+    puts '  - 防火墙配置'
+    puts '  - 必要工具安装'
+    puts '  - 磁盘性能优化'
+    puts '  - 内存优化 (禁用透明大页)'
+
+    puts "\n💡 推荐部署流程:"
+    puts '  1. 首次部署: rke2 deploy (完整部署)'
+    puts '  2. 仅系统优化: rke2 bootstrap'
+    puts '  3. 测试部署: rke2 quick'
+    puts '  4. 生产环境: rke2 ha'
+
+    puts "\n🔗 更多信息:"
+    puts '  项目地址: https://github.com/your-repo/rke2-deploy'
+    puts '  文档地址: https://docs.rke2.io/'
+  end
+
+  # Confirm deployment
+  #
+  # @param deployment_type [String] Type of deployment
+  def confirm_deployment(deployment_type)
+    puts "\n⚠️  确认信息:"
+    puts "  部署类型: #{deployment_type}"
+    puts "  配置文件: #{@config_file}"
+    puts "  当前时间: #{Time.now.strftime('%Y-%m-%d %H:%M:%S')}"
+
+    print "\n确认开始部署? (y/N): "
+    confirm = STDIN.gets&.chomp&.downcase || 'n'
+
+    return if %w[y yes].include?(confirm)
+
+    puts '❌ 用户取消部署'
+    exit 0
+  end
+
+  # Show next steps after successful deployment
+  def show_next_steps
+    puts "\n🎯 后续操作建议:"
+    puts '  1. SSH 登录到任意 Server 节点'
+    puts '  2. 验证集群状态: kubectl get nodes'
+    puts '  3. 查看管理脚本: ls -la ~/cluster-*.sh ~/helm-*.sh'
+    puts '  4. 启动 K9s 管理界面: k9s'
+    puts '  5. 部署测试应用: kubectl create deployment nginx --image=nginx'
+  end
+
+  # Estimate deployment time
+  #
+  # @param node_count [Integer] Number of nodes
+  # @return [String] Estimated time
+  def estimate_deployment_time(node_count)
+    base_time = 5 # Base time in minutes
+    per_node_time = 2 # Additional time per node
+
+    total_minutes = base_time + (node_count * per_node_time)
+
+    if total_minutes < 60
+      "#{total_minutes} 分钟"
+    else
+      hours = total_minutes / 60
+      minutes = total_minutes % 60
+      "#{hours} 小时 #{minutes} 分钟"
+    end
+  end
+end
+
+# Main execution
+if __FILE__ == $0
+  begin
+    cli = RKE2CLI.new
+    cli.run
+  rescue Interrupt
+    puts "\n\n👋 用户中断，退出程序"
+    exit 130
+  rescue StandardError => e
+    puts "\n❌ 程序异常: #{e.message}"
+    puts "🔍 详细信息: #{e.backtrace.join("\n")}" if ENV['DEBUG']
+    exit 1
+  end
+end
