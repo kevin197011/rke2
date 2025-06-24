@@ -565,7 +565,7 @@ git checkout -b feature/your-feature-name
 - **RKE2 官方文档**: https://docs.rke2.io/
 - **Kubernetes 文档**: https://kubernetes.io/docs/
 - **HAProxy 文档**: https://www.haproxy.org/download/2.4/doc/
-- **项目问题跟踪**: https://github.com/your-repo/rke2/issues
+- **项目问题跟踪**: https://github.com/kevin197011/rke2/issues
 
 ## 🏷️ 版本历史
 

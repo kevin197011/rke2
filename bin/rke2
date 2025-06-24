@@ -391,7 +391,7 @@ class RKE2CLI
     puts '  4. 生产环境: rke2 ha'
 
     puts "\n🔗 更多信息:"
-    puts '  项目地址: https://github.com/your-repo/rke2-deploy'
+    puts '  项目地址: https://github.com/kevin197011/rke2-deploy'
     puts '  文档地址: https://docs.rke2.io/'
   end
 
