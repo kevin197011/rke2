@@ -40,6 +40,13 @@ class RKE2CLI
 
   # Show application banner
   def show_banner
+    puts "\n"
+    puts '        __          ________  '
+    puts '_______|  | __ ____ \\_____  \\ '
+    puts '\\_  __ \\  |/ // __ \\ /  ____/ '
+    puts ' |  | \\/    <\\  ___//       \\ '
+    puts ' |__|  |__|_ \\\\___  >_______ \\'
+    puts '            \\/    \\/        \\/'
     puts "\n" + ('=' * 80)
     puts "🚀 RKE2 集群部署工具 v#{RKE2::VERSION}"
     puts '=' * 80
