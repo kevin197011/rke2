@@ -10,7 +10,7 @@ require 'rspec/core/rake_task'
 require 'yard'
 
 # Default task
-task default: %i[spec rubocop]
+task default: %i[push]
 
 # RSpec test task
 RSpec::Core::RakeTask.new(:spec)
@@ -85,15 +85,4 @@ task :push do
   system "git commit -m 'Update #{Time.now}.'"
   system 'git pull'
   system 'git push origin main'
-end
-
-desc 'Show project statistics'
-task :stats do
-  puts '📊 Project Statistics:'
-  puts 'Lines of code:'
-  sh "find lib -name '*.rb' | xargs wc -l | tail -1"
-  puts "\nFiles:"
-  sh "find lib -name '*.rb' | wc -l"
-  puts "\nTests:"
-  sh "find spec -name '*.rb' 2>/dev/null | wc -l || echo '0'"
 end
